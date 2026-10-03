@@ -1,51 +1,25 @@
-# 🤖 Ingredient Checker: an AI agent for what's in your food
+# 🤖 Ingredient Checker
 
-An AI agent that reads a product's ingredients list from a photo, researches the suspicious ingredients on the web, and tells you whether the product suits **your** diet or allergies. It keeps what is confirmed apart from what is only inferred, and it never quotes a number without a source link.
+An AI agent that reads a product's ingredients list from a photo, researches it on the web, and tells you whether it suits **your** diet or allergies.
 
-Built for people who avoid things for personal reasons (halal, vegan...) or because of allergies (gluten, nuts, dairy...).
+- 📷 Photo in, short report out
+- ✅ Works for halal, gluten-free, nut allergy, dairy-free, vegan, or anything you describe yourself
+- 🏷️ Every point is marked **Confirmed**, **Inferred** or **Unknown**, and numbers always come with a source link
 
 > Built as a hands-on project to explore how to design a reliable AI agent: vision, tool use, and guardrails that don't rely on the model behaving.
 
-## 🧩 Why it's an agent, not just a prompt
+## 👣 How to use it
 
-Instead of answering in one shot, the model works in a loop and decides each step itself:
+1. **Pick what you avoid.** Tick as many as you like: Halal, Gluten-free, Nut allergy, Dairy-free, Vegan. Choose **Other** to describe anything else in your own words (Arabic works too, and the report will answer in Arabic).
+2. **Add a photo of the ingredients list.** It's required. A photo of the front of the pack is optional but helps the search. On a phone, the button opens the camera.
+3. **Tap "Analyze product".** It reads the label and researches the suspicious ingredients. This can take up to a minute.
+4. **Read the report.** You can copy it, or tap "Check a new product" to start over. Your preferences are remembered.
 
-```mermaid
-flowchart LR
-    A[📷 Ingredients photo and preferences] --> B[Claude reads the label with vision]
-    B --> C{Anything suspicious for this user?}
-    C -- yes --> D[🌐 Web search, up to 8 lookups]
-    D --> C
-    C -- done --> E[Draft report with evidence tags]
-    E --> F[🛡️ Guard in code drops invented links and unsourced statistics]
-    F --> G[✅ Final report]
-```
+If the photo isn't an ingredients list, the agent says so instead of guessing.
 
-- **Perceives:** reads the label and the logos on the pack (vegan, halal, gluten-free...) from the photo.
-- **Decides:** chooses which ingredients are worth researching for *this* user and what to search for.
-- **Acts:** calls a live web-search tool, up to 8 times, and reads what comes back.
-- **Checks itself:** the server verifies the draft instead of trusting it (see below).
+## 🚀 Run it yourself
 
-## ✨ Features
-
-- 📷 **Photo in, report out.** Snap the ingredients list, and optionally the front of the pack to help the search. Works from a phone camera or a file.
-- ✅ **Pick your preferences.** Halal, Gluten-free, Nut allergy, Dairy-free, Vegan, or **Other** for anything else in your own words. Choose as many as you like; they are saved on your device.
-- 🏷️ **Reads the pack, not just the list.** A vegan or halal logo counts as the manufacturer's statement and is used as evidence.
-- 📊 **Published statistics, never guesses.** For a suspicious ingredient it shows what has been published ("gelatin: mostly pig skin, about 46% worldwide") with the source. If no source states a number, it says *No documented statistic*.
-- 🚫 **Not a product photo? It tells you.** A selfie or a tree gets a polite "this isn't an ingredients list" instead of a made-up report.
-- 🌍 **Speaks your language.** The interface is English. Write your notes in Arabic and the report comes back in Arabic (right-to-left).
-- 📋 **Copy the result** or start a new check with one tap. Responsive layout for phone and desktop.
-
-## 🛡️ How it stays honest
-
-- Every point is tagged **Confirmed**, **Inferred** (with a likelihood) or **Unknown**.
-- Statistics are shown only with a link, and the server drops any statistics line whose link did not actually appear in the search results.
-- It never says a product is "safe". It says *suitable*, *not suitable* or *needs verification*.
-- It only flags what is actually listed on the label. No speculation about hidden or trace substances.
-
-## 🚀 Quick start
-
-You need Node.js (developed on Node 24) and an [Anthropic API key](https://console.anthropic.com/).
+You need [Node.js](https://nodejs.org/) (developed on Node 24) and an [Anthropic API key](https://console.anthropic.com/).
 
 ```bash
 git clone https://github.com/a-Hussain314/ingredient-checker-ai-agent.git
@@ -53,27 +27,51 @@ cd ingredient-checker-ai-agent
 npm install
 ```
 
-Create a `.env` file in the project root:
+Create a file named `.env` in that folder with your key:
 
 ```
 ANTHROPIC_API_KEY=your-key-here
 ```
 
-Start it:
+Then start it and open <http://localhost:3000>:
 
 ```bash
 npm run start:dev
 ```
 
-Open <http://localhost:3000>.
+**On your phone:** connect it to the same Wi-Fi and open `http://<your-computer-ip>:3000`.
 
-### Use it from your phone
+> ⚠️ There is no login. Anyone who can reach the address can use **your** API credit. Keep it on your home network, and add authentication before putting it on the internet.
 
-Put the phone on the same Wi-Fi as your computer and open `http://<your-computer-ip>:3000`. The file picker opens the camera on most phones.
+## 🧩 How it works
 
-> ⚠️ There is no login. Anyone who can reach the address can run analyses on **your** API credit. Keep it on your home network, and add authentication before exposing it to the internet.
+The model doesn't answer in one shot. It works in a loop and decides each step itself:
 
-## 🔌 API
+```mermaid
+flowchart LR
+    A[📷 Photo and preferences] --> B[Claude reads the label]
+    B --> C{Anything suspicious for this user?}
+    C -- yes --> D[🌐 Web search, up to 8 lookups]
+    D --> C
+    C -- done --> E[Draft report]
+    E --> F[🛡️ Code checks the sources]
+    F --> G[✅ Final report]
+```
+
+- **It reads the whole pack,** including vegan or halal logos, and treats them as the manufacturer's statement.
+- **It never says "safe".** It says suitable, not suitable, or needs verification.
+- **It doesn't speculate.** It only flags what is actually listed on the label.
+- **The server checks the model.** Any statistic whose link didn't appear in the search results is dropped.
+
+## ℹ️ Good to know
+
+- **Cost:** each check can use several web searches, so it costs more than a plain chat message. The model is set by `MODEL` in `src/product/product.service.ts`.
+- **Privacy:** your photos and preferences are sent to the Anthropic API. Preferences are saved only in your browser.
+- **It can be wrong.** It's a helper for your own judgment, not a religious ruling or medical advice. The source check confirms a link is real, not that the page contains the quoted number. When it matters, ask the manufacturer.
+- **No automated tests yet.** It has been checked by hand.
+
+<details>
+<summary><b>API</b></summary>
 
 `POST /product/analyze` with JSON:
 
@@ -85,29 +83,27 @@ Put the phone on the same Wi-Fi as your computer and open `http://<your-computer
 | `preferences` | string[] | Any of `halal`, `gluten_free`, `nut_allergy`, `dairy_free`, `vegan`. |
 | `notes` | string | Free text, up to 2000 characters. The report follows its language. |
 
-It answers with `{ "status": "ok", "report": "..." }` or `{ "status": "not_a_label", "message": "..." }`. The report uses small English markers (`[[stats]]`, `[confirmed|...]`) so the page can style it whatever language the text is in.
+Returns `{ "status": "ok", "report": "..." }` or `{ "status": "not_a_label", "message": "..." }`.
 
-## 🗂️ Project layout
+</details>
+
+<details>
+<summary><b>Project layout</b></summary>
 
 ```
 src/
-  main.ts                      app bootstrap (10 MB JSON limit for photos)
+  main.ts                      app bootstrap
   app.module.ts                serves public/ and registers the product module
   product/
     preferences.ts             what each preference means, written for the model
     product.controller.ts      validates the request
-    product.service.ts         the agent: prompt, Claude call with web search, source guard
+    product.service.ts         the agent: prompt, Claude call with web search, source check
 public/
   index.html  script.js  style.css   the whole front end, no framework
 ```
 
-## ⚙️ Good to know
-
-- **Model and cost.** The model is set by `MODEL` in `src/product/product.service.ts`. Each analysis can run up to 8 web searches, so it costs more than a plain chat message. Photos are shrunk in the browser (max 1600 px) before upload.
-- **Privacy.** Your photos and preferences are sent to the Anthropic API for analysis. Preferences are stored only in your browser's local storage.
-- **It can be wrong.** This is a helper for your own judgment, not a religious ruling or medical advice. A claim printed on a pack is the manufacturer's own claim, and statistics are only as good as the source the model found. The guard checks that a link is real, not that the page contains the quoted number. When something matters, ask the manufacturer.
-- **No automated tests yet.** It has been checked by hand.
+</details>
 
 ## 🛠️ Built with
 
-[NestJS](https://nestjs.com/) · TypeScript · [Claude](https://www.anthropic.com/claude) (vision, tool use and web search) · plain HTML, CSS and JavaScript
+[NestJS](https://nestjs.com/) · TypeScript · [Claude](https://www.anthropic.com/claude) (vision, tool use, web search) · plain HTML, CSS and JavaScript
