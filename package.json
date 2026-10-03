@@ -1,7 +1,7 @@
 {
-  "name": "ingredient-checker",
+  "name": "ingredient-checker-ai-agent",
   "version": "0.0.1",
-  "description": "",
+  "description": "An AI agent that reads a product's ingredients list from a photo, researches it on the web, and tells you if it suits your diet or allergies.",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

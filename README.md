@@ -1,21 +1,42 @@
-# 🔍 Ingredient Checker
+# 🤖 Ingredient Checker: an AI agent for what's in your food
 
-Take a photo of a product's ingredients list, tell the app what you avoid, and get a short, honest report on whether the product suits you.
+An AI agent that reads a product's ingredients list from a photo, researches the suspicious ingredients on the web, and tells you whether the product suits **your** diet or allergies. It keeps what is confirmed apart from what is only inferred, and it never quotes a number without a source link.
 
-Built for people who avoid things for personal reasons (halal, vegan...) or because of allergies (gluten, nuts, dairy...). It tells you what is **confirmed**, what is only **inferred**, and what is **unknown**, with a source link for every number it quotes.
+Built for people who avoid things for personal reasons (halal, vegan...) or because of allergies (gluten, nuts, dairy...).
+
+> Built as a hands-on project to explore how to design a reliable AI agent: vision, tool use, and guardrails that don't rely on the model behaving.
+
+## 🧩 Why it's an agent, not just a prompt
+
+Instead of answering in one shot, the model works in a loop and decides each step itself:
+
+```mermaid
+flowchart LR
+    A[📷 Ingredients photo and preferences] --> B[Claude reads the label with vision]
+    B --> C{Anything suspicious for this user?}
+    C -- yes --> D[🌐 Web search, up to 8 lookups]
+    D --> C
+    C -- done --> E[Draft report with evidence tags]
+    E --> F[🛡️ Guard in code drops invented links and unsourced statistics]
+    F --> G[✅ Final report]
+```
+
+- **Perceives:** reads the label and the logos on the pack (vegan, halal, gluten-free...) from the photo.
+- **Decides:** chooses which ingredients are worth researching for *this* user and what to search for.
+- **Acts:** calls a live web-search tool, up to 8 times, and reads what comes back.
+- **Checks itself:** the server verifies the draft instead of trusting it (see below).
 
 ## ✨ Features
 
-- 📷 **Photo in, report out.** Snap the ingredients list (and, optionally, the front of the pack to help with the search). Works from a phone camera or a file.
+- 📷 **Photo in, report out.** Snap the ingredients list, and optionally the front of the pack to help the search. Works from a phone camera or a file.
 - ✅ **Pick your preferences.** Halal, Gluten-free, Nut allergy, Dairy-free, Vegan, or **Other** for anything else in your own words. Choose as many as you like; they are saved on your device.
-- 🌐 **Researches the product.** Uses Claude with live web search to look up manufacturer statements, certifications and the source of suspicious ingredients such as E471, glycerol or gelatin.
-- 🏷️ **Reads the pack, not just the list.** A vegan or halal logo on the packaging counts as the manufacturer's statement and is used as evidence.
+- 🏷️ **Reads the pack, not just the list.** A vegan or halal logo counts as the manufacturer's statement and is used as evidence.
 - 📊 **Published statistics, never guesses.** For a suspicious ingredient it shows what has been published ("gelatin: mostly pig skin, about 46% worldwide") with the source. If no source states a number, it says *No documented statistic*.
 - 🚫 **Not a product photo? It tells you.** A selfie or a tree gets a polite "this isn't an ingredients list" instead of a made-up report.
 - 🌍 **Speaks your language.** The interface is English. Write your notes in Arabic and the report comes back in Arabic (right-to-left).
 - 📋 **Copy the result** or start a new check with one tap. Responsive layout for phone and desktop.
 
-## 🧠 How it stays honest
+## 🛡️ How it stays honest
 
 - Every point is tagged **Confirmed**, **Inferred** (with a likelihood) or **Unknown**.
 - Statistics are shown only with a link, and the server drops any statistics line whose link did not actually appear in the search results.
@@ -27,8 +48,8 @@ Built for people who avoid things for personal reasons (halal, vegan...) or beca
 You need Node.js (developed on Node 24) and an [Anthropic API key](https://console.anthropic.com/).
 
 ```bash
-git clone https://github.com/a-Hussain314/ingredient-checker.git
-cd ingredient-checker
+git clone https://github.com/a-Hussain314/ingredient-checker-ai-agent.git
+cd ingredient-checker-ai-agent
 npm install
 ```
 
@@ -75,7 +96,7 @@ src/
   product/
     preferences.ts             what each preference means, written for the model
     product.controller.ts      validates the request
-    product.service.ts         the prompt, the Claude call, and the source guard
+    product.service.ts         the agent: prompt, Claude call with web search, source guard
 public/
   index.html  script.js  style.css   the whole front end, no framework
 ```
@@ -84,9 +105,9 @@ public/
 
 - **Model and cost.** The model is set by `MODEL` in `src/product/product.service.ts`. Each analysis can run up to 8 web searches, so it costs more than a plain chat message. Photos are shrunk in the browser (max 1600 px) before upload.
 - **Privacy.** Your photos and preferences are sent to the Anthropic API for analysis. Preferences are stored only in your browser's local storage.
-- **It can be wrong.** This is a helper for your own judgment, not a religious ruling or medical advice. A claim printed on a pack is the manufacturer's own claim, and statistics are only as good as the source the model found. When something matters, ask the manufacturer.
+- **It can be wrong.** This is a helper for your own judgment, not a religious ruling or medical advice. A claim printed on a pack is the manufacturer's own claim, and statistics are only as good as the source the model found. The guard checks that a link is real, not that the page contains the quoted number. When something matters, ask the manufacturer.
 - **No automated tests yet.** It has been checked by hand.
 
 ## 🛠️ Built with
 
-[NestJS](https://nestjs.com/) · TypeScript · [Claude](https://www.anthropic.com/claude) with web search · plain HTML, CSS and JavaScript
+[NestJS](https://nestjs.com/) · TypeScript · [Claude](https://www.anthropic.com/claude) (vision, tool use and web search) · plain HTML, CSS and JavaScript
